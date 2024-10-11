@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Middle-earth Map</title>
+  <!-- Link to Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>
+    /* Set the size of the map */
+    #map {
+      height: 100vh;
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+  <!-- Map Container -->
+  <div id="map"></div>
+  
+  <!-- Leaflet JavaScript Library -->
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script>
+    // Initialize the map with CRS.Simple for pixel coordinates
+    const map = L.map('map', {
+      crs: L.CRS.Simple,
+      minZoom: 0,
+      maxZoom: 4  // Updated to reflect your highest zoom level
+    }).setView([256, 256], 0); // Center on [256, 256] at zoom level 0
+
+    // Load the tile layer
+    L.tileLayer('/tiles/{z}/{x}/{y}.jpg', {
+      maxZoom: 4, // Highest zoom level is now 4
+      attribution: 'Map data © <a href="http://lotrproject.com/">LOTR Project</a>'
+    }).addTo(map);
+  </script>
+</body>
+</html>
