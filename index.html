@@ -17,7 +17,7 @@
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
     <script>
         // Initialize the map centered on [256, 256] with zoom level 0
-        var map = L.map('map').setView([256, 256], 0);
+        var map = L.map('map').setView([256, -256], 0);
         
         // Define the tile layer with noWrap to prevent out-of-bounds requests
         var tileLayer = L.tileLayer('/walking-middle-earth/tiles/{z}/{x}/{y}.jpg', {
