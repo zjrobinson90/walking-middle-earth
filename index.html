@@ -1,51 +1,36 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Interactive Map of Middle-Earth</title>
-  <!-- Leaflet CSS without integrity attribute -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" crossorigin=""/>
-  <style>
-    #map {
-      width: 100%;
-      height: 100vh;
-    }
-  </style>
+    <title>Walking Middle Earth</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" integrity="sha384-B84b0m8G+7BlWGLWRSllK2peJuKAWu4C4lX8FoeCct4yFBGeF1Y1h/gpD5wIYf6j" crossorigin=""/>
+    <style>
+        #map { height: 600px; }
+    </style>
 </head>
 <body>
-  <div id="map"></div>
+    <div id="map"></div>
+    <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js" integrity="sha384-h4C1Y9I7rvW7rW9g/o8V55NRcD9s8Db47W5TbWz2jT1T5tUbCvn2cVnflx60odBd" crossorigin=""></script>
+    <script>
+        var map = L.map('map', {
+            center: [4, 5], // Adjust center based on your tile layout
+            zoom: 3,
+            minZoom: 0,
+            maxZoom: 3
+        });
 
-  <!-- Leaflet JS without integrity attribute -->
-  <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js" crossorigin=""></script>
-  <script>
-    // Initialize the map
-    var map = L.map('map', {
-      crs: L.CRS.Simple,
-      minZoom: 0,
-      maxZoom: 3,
-      center: [0, 0]  // Center position
-    });
+        var tileLayer = L.tileLayer('/walking-middle-earth/tiles/{z}/{y}/{x}.jpg', {
+            noWrap: true
+        }).addTo(map);
 
-    // Define the tile layer with the correct path and image format
-    var tileLayer = L.tileLayer('/walking-middle-earth/tiles/{z}/{x}/{y}.jpg', {
-      tileSize: 256,
-      minZoom: 0,
-      maxZoom: 3,
-      noWrap: true
-    }).addTo(map);
+        // Optional: Fit bounds based on your tile grid
+        var southWest = L.latLng(0, 0);
+        var northEast = L.latLng(10, 11); // Adjust based on your grid size
+        var bounds = L.latLngBounds(southWest, northEast);
+        map.fitBounds(bounds);
 
-    // Define bounds for the tiles
-    var southWest = map.unproject([0, 2560], 3);
-    var northEast = map.unproject([2816, 0], 3);
-    var bounds = new L.LatLngBounds(southWest, northEast);
-
-    // Set map view and bounds to the exact extent of the tiles
-    map.fitBounds(bounds);
-    map.setMaxBounds(bounds);
-
-    // Ensure no out-of-range tiles are loaded by setting zoom and center
-    map.setView([5, 5.5], 0);
-  </script>
+        map.on('moveend', function() {
+            console.log(map.getCenter()); // Logs the center after moving
+        });
+    </script>
 </body>
 </html>
