@@ -24,22 +24,18 @@
       crs: L.CRS.Simple,
       minZoom: 0,
       maxZoom: 3,
-      center: [5, 5.5]  // Center position to fit your grid
+      center: [0, 0]  // Center position
     });
 
-    // Define the tile layer with the correct path
+    // Define the tile layer with the correct path and image format
     var tileLayer = L.tileLayer('/walking-middle-earth/tiles/{z}/{x}/{y}.jpg', {
       tileSize: 256,
       minZoom: 0,
       maxZoom: 3,
-      noWrap: true,
-      bounds: L.latLngBounds(
-        map.unproject([0, 2560], 3),
-        map.unproject([2816, 0], 3)
-      )
+      noWrap: true
     }).addTo(map);
 
-    // Convert pixel coordinates to map coordinates for bounding
+    // Define bounds for the tiles
     var southWest = map.unproject([0, 2560], 3);
     var northEast = map.unproject([2816, 0], 3);
     var bounds = new L.LatLngBounds(southWest, northEast);
@@ -49,7 +45,7 @@
     map.setMaxBounds(bounds);
 
     // Ensure no out-of-range tiles are loaded by setting zoom and center
-    map.setView([10, 14], 0);
+    map.setView([5, 5.5], 0);
   </script>
 </body>
 </html>
