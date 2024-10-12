@@ -31,6 +31,7 @@
     L.tileLayer('/tiles/{z}/{x}/{y}.jpg', {
       minZoom: 0,
       maxZoom: 3, // Highest zoom level is now 3
+      noWrap: true, // Prevents negative or out-of-bounds tile requests
       attribution: 'Map data © <a href="http://lotrproject.com/">LOTR Project</a>'
     }).addTo(map);
   </script>
