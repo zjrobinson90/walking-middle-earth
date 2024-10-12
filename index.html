@@ -18,7 +18,10 @@
     <script>
         // Initialize the map centered on [256, 256] with zoom level 0
         var map = L.map('map').setView([256, 256], 0);
-
+        
+        // Define the maximum Y value for your highest zoom level
+        const maxY = 10; // Change this to the highest Y value for your highest zoom level
+        
         // Define the tile layer with noWrap to prevent out-of-bounds requests
         var tileLayer = L.tileLayer('/tiles/{z}/{x}/' + (maxY - '{y}') + '.jpg', {
             minZoom: 0,                // Start at zoom level 0
