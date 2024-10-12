@@ -20,7 +20,7 @@
         var map = L.map('map').setView([256, 256], 0);
         
         // Define the tile layer with noWrap to prevent out-of-bounds requests
-        var tileLayer = L.tileLayer('/tiles/{z}/{x}/{y}') + '.jpg', {
+        var tileLayer = L.tileLayer('/tiles/{z}/{x}/{y}.jpg', {
             minZoom: 0,                // Start at zoom level 0
             maxZoom: 3,                // End at zoom level 3
             noWrap: true,              // Prevents loading tiles from outside bounds
