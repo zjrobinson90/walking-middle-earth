@@ -36,8 +36,8 @@
     }).addTo(map);
 
     // Define bounds for the tiles
-    var southWest = map.unproject([0, 2560], 3);
-    var northEast = map.unproject([2816, 0], 3);
+    var southWest = map.unproject([0, 4000], 3);
+    var northEast = map.unproject([4000, 0], 3);
     var bounds = new L.LatLngBounds(southWest, northEast);
 
     // Set map view and bounds to the exact extent of the tiles
