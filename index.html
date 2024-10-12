@@ -24,12 +24,12 @@
     const map = L.map('map', {
       crs: L.CRS.Simple,
       minZoom: 0,
-      maxZoom: 4  // Updated to reflect your highest zoom level
+      maxZoom: 3  // Updated to reflect your highest zoom level
     }).setView([256, 256], 0); // Center on [256, 256] at zoom level 0
 
     // Load the tile layer
     L.tileLayer('/tiles/{z}/{x}/{y}.jpg', {
-      maxZoom: 4, // Highest zoom level is now 4
+      maxZoom: 3, // Highest zoom level is now 3
       attribution: 'Map data © <a href="http://lotrproject.com/">LOTR Project</a>'
     }).addTo(map);
   </script>
