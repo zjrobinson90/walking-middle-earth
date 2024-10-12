@@ -22,15 +22,15 @@
     // Initialize the map
     var map = L.map('map', {
       crs: L.CRS.Simple,
-      minZoom: 0,
+      minZoom: 1,
       maxZoom: 3,
-      center: [1, 1]  // Center position
+      center: [0, 0]  // Center position
     });
 
     // Define the tile layer with the correct path and image format
     var tileLayer = L.tileLayer('/walking-middle-earth/tiles/{z}/{x}/{y}.jpg', {
       tileSize: 256,
-      minZoom: 0,
+      minZoom: 1,
       maxZoom: 3,
       noWrap: true
     }).addTo(map);
