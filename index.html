@@ -4,7 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Interactive Map of Middle-Earth</title>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+  <!-- Leaflet CSS without integrity attribute -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" crossorigin=""/>
   <style>
     #map {
       width: 100%;
@@ -15,35 +16,40 @@
 <body>
   <div id="map"></div>
 
-  <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+  <!-- Leaflet JS without integrity attribute -->
+  <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js" crossorigin=""></script>
   <script>
     // Initialize the map
     var map = L.map('map', {
+      crs: L.CRS.Simple,  // Simple Coordinate Reference System for a straightforward layout
       minZoom: 0,
       maxZoom: 3,
-      center: [5, 5.5],  // Adjusted center based on the approximate middle of your tile layout
-      zoom: 1
+      zoom: 0,
+      center: [5, 5.5]  // Initial center, feel free to adjust
     });
 
-    // Define your custom tile layer
-    L.tileLayer('/walking-middle-earth/tiles/{z}/{x}/{y}.jpg', {
+    // Define the bounds at zoom level 3 (full map) as the maximum extent
+    var maxBounds = [[0, 0], [2560, 2816]]; // (10 rows * 256) x (11 cols * 256)
+    var tileLayer = L.tileLayer('/walking-middle-earth/tiles/{z}/{x}/{y}.png', {
       tileSize: 256,
-      maxZoom: 3,
       minZoom: 0,
+      maxZoom: 3,
       noWrap: true,
-      bounds: [[0, 0], [10, 11]]  // Define the bounds based on the number of rows and columns
+      bounds: maxBounds
     }).addTo(map);
 
-    // Set the max bounds based on your max zoom tile layout
+    // Convert pixel coordinates to map coordinates
     var southWest = map.unproject([0, 2560], map.getMaxZoom());
     var northEast = map.unproject([2816, 0], map.getMaxZoom());
-    map.setMaxBounds(new L.LatLngBounds(southWest, northEast));
+    var bounds = new L.LatLngBounds(southWest, northEast);
 
-    // Optionally fit the map to these bounds
-    map.fitBounds([
-      [0, 0],
-      [10, 11]
-    ]);
+    // Set the map view to the calculated bounds
+    map.fitBounds(bounds);
+    map.setMaxBounds(bounds);
+
+    // Zoom control and initial view configuration
+    map.setView([10, 14], 0); // Adjust to bring full map into initial view
+
   </script>
 </body>
 </html>
