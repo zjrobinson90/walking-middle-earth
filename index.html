@@ -1,51 +1,139 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Interactive Map of Middle-Earth</title>
-  <!-- Leaflet CSS without integrity attribute -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" crossorigin=""/>
-  <style>
-    #map {
-      width: 100%;
-      height: 100vh;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Journey Through Middle-earth</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.3/leaflet.css" />
+    <style>
+        body { margin: 0; padding: 0; }
+        #map {
+            width: 100%;
+            height: 100vh;
+        }
+        .info-panel {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 10px;
+            border-radius: 4px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.2);
+        }
+        .progress-bar {
+            width: 200px;
+            height: 20px;
+            background: #eee;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: #4CAF50;
+            width: 0%;
+            transition: width 0.5s ease-in-out;
+        }
+    </style>
 </head>
 <body>
-  <div id="map"></div>
+    <div id="map"></div>
+    <div class="info-panel">
+        <h3>Journey Progress</h3>
+        <p>Your Progress: <span id="userMiles">0</span> miles</p>
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressBar"></div>
+        </div>
+        <p>Total Journey: <span id="totalMiles">1779</span> miles</p>
+        <!-- Debug controls -->
+        <button onclick="addMiles(10)">Add 10 miles (debug)</button>
+    </div>
 
-  <!-- Leaflet JS without integrity attribute -->
-  <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js" crossorigin=""></script>
-  <script>
-    // Initialize the map
-    var map = L.map('map', {
-      crs: L.CRS.Simple,
-      minZoom: 1,
-      maxZoom: 3,
-      center: [0, 0]  // Center position
-    });
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.3/leaflet.js"></script>
+    <script>
+        // Initialize the map with proper CRS and controls
+        const map = L.map('map', {
+            crs: L.CRS.Simple,
+            minZoom: 1,
+            maxZoom: 3,
+            zoomControl: true,
+            attributionControl: false
+        });
 
-    // Define the tile layer with the correct path and image format
-    var tileLayer = L.tileLayer('/walking-middle-earth/tiles/{z}/{x}/{y}.jpg', {
-      tileSize: 256,
-      minZoom: 1,
-      maxZoom: 3,
-      noWrap: true
-    }).addTo(map);
+        // Calculate bounds based on your tile dimensions
+        const imageWidth = 4000;
+        const imageHeight = 4000;
+        const bounds = [[0, 0], [imageHeight, imageWidth]];
 
-    // Define bounds for the tiles
-    var southWest = map.unproject([0, 4000], 3);
-    var northEast = map.unproject([4000, 0], 3);
-    var bounds = new L.LatLngBounds(southWest, northEast);
+        // Add tile layer with correct path
+        L.tileLayer('/walking-middle-earth/tiles/{z}/{x}/{y}.jpg', {
+            minZoom: 1,
+            maxZoom: 3,
+            noWrap: true,
+            bounds: bounds,
+            tileSize: 256
+        }).addTo(map);
 
-    // Set map view and bounds to the exact extent of the tiles
-    map.fitBounds(bounds);
-    map.setMaxBounds(bounds);
+        // Fit map to bounds
+        map.fitBounds(bounds);
+        map.setMaxBounds(bounds.pad(0.5));
 
-    // Ensure no out-of-range tiles are loaded by setting zoom and center
-    map.setView([5, 5.5], 0);
-  </script>
+        // Frodo's journey coordinates (simplified example - you'll want to add more points)
+        const journeyCoordinates = [
+            [2000, 1000], // Hobbiton
+            [2200, 1200], // Bree
+            [2400, 1600], // Rivendell
+            [2600, 2000], // Moria
+            [2800, 2400], // Lothlórien
+            [3000, 2800], // Amon Hen
+            [3200, 3200], // Mordor
+            [3400, 3600]  // Mount Doom
+        ];
+
+        // Create the path layer
+        const pathLayer = L.polyline([], {
+            color: 'red',
+            weight: 3,
+            opacity: 0.7
+        }).addTo(map);
+
+        // Journey tracking variables
+        let currentMiles = 0;
+        const totalMiles = 1779; // Approximate total miles from Hobbiton to Mount Doom
+
+        // Function to update progress
+        function addMiles(miles) {
+            currentMiles = Math.min(currentMiles + miles, totalMiles);
+            updateProgress();
+        }
+
+        // Function to update the visual progress
+        function updateProgress() {
+            // Update display
+            document.getElementById('userMiles').textContent = currentMiles;
+            
+            // Update progress bar
+            const percentage = (currentMiles / totalMiles) * 100;
+            document.getElementById('progressBar').style.width = percentage + '%';
+
+            // Calculate how much of the path to show
+            const progress = currentMiles / totalMiles;
+            const pointsToShow = Math.ceil(progress * journeyCoordinates.length);
+            
+            // Update the path on the map
+            pathLayer.setLatLngs(journeyCoordinates.slice(0, pointsToShow));
+        }
+
+        // Initialize markers for key locations
+        journeyCoordinates.forEach((coord, index) => {
+            if (index === 0 || index === journeyCoordinates.length - 1) {
+                L.marker(coord).addTo(map)
+                    .bindPopup(index === 0 ? 'Hobbiton' : 'Mount Doom');
+            }
+        });
+
+        // Initial update
+        updateProgress();
+    </script>
 </body>
 </html>
