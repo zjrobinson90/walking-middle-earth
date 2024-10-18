@@ -45,49 +45,53 @@
             <div class="progress-fill" id="progressBar"></div>
         </div>
         <p>Total Journey: <span id="totalMiles">1779</span> miles</p>
-        <!-- Debug controls -->
         <button onclick="addMiles(10)">Add 10 miles (debug)</button>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.3/leaflet.js"></script>
     <script>
-        // Initialize the map with proper CRS and controls
+        // Initialize the map
         const map = L.map('map', {
             crs: L.CRS.Simple,
-            minZoom: 1,
+            minZoom: 0,
             maxZoom: 3,
             zoomControl: true,
             attributionControl: false
         });
 
-        // Calculate bounds based on your tile dimensions
-        const imageWidth = 4000;
-        const imageHeight = 4000;
-        const bounds = [[0, 0], [imageHeight, imageWidth]];
-
-        // Add tile layer with correct path
+        // Add tile layer
         L.tileLayer('/walking-middle-earth/tiles/{z}/{x}/{y}.jpg', {
-            minZoom: 1,
+            minZoom: 0,
             maxZoom: 3,
             noWrap: true,
-            bounds: bounds,
-            tileSize: 256
+            tileSize: 256,
+            bounds: [[0, 0], [8192, 8192]]  // Assuming max zoom tiles are 256x256 and you have 11x11 tiles at max zoom
         }).addTo(map);
 
-        // Fit map to bounds
-        map.fitBounds(bounds);
-        map.setMaxBounds(bounds.pad(0.5));
+        // Calculate the center point
+        const centerPoint = [4096, 4096];  // Half of the bounds
+        
+        // Set view to the center at zoom level 1
+        map.setView(centerPoint, 1);
 
-        // Frodo's journey coordinates (simplified example - you'll want to add more points)
+        // Set max bounds with some padding
+        const maxBounds = [[0, 0], [8192, 8192]];
+        map.setMaxBounds(maxBounds);
+
+        // Journey tracking variables
+        let currentMiles = 0;
+        const totalMiles = 1779; // Total miles from Hobbiton to Mount Doom
+
+        // Frodo's journey coordinates (you'll need to adjust these based on your map)
         const journeyCoordinates = [
-            [2000, 1000], // Hobbiton
-            [2200, 1200], // Bree
-            [2400, 1600], // Rivendell
-            [2600, 2000], // Moria
-            [2800, 2400], // Lothlórien
-            [3000, 2800], // Amon Hen
-            [3200, 3200], // Mordor
-            [3400, 3600]  // Mount Doom
+            [3000, 2000], // Hobbiton (example coordinates)
+            [3200, 2500], // Bree
+            [3500, 3000], // Rivendell
+            [4000, 3500], // Moria
+            [4500, 4000], // Lothlórien
+            [5000, 4500], // Amon Hen
+            [5500, 5000], // Mordor
+            [6000, 5500]  // Mount Doom
         ];
 
         // Create the path layer
@@ -96,10 +100,6 @@
             weight: 3,
             opacity: 0.7
         }).addTo(map);
-
-        // Journey tracking variables
-        let currentMiles = 0;
-        const totalMiles = 1779; // Approximate total miles from Hobbiton to Mount Doom
 
         // Function to update progress
         function addMiles(miles) {
