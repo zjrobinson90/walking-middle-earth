@@ -29,6 +29,7 @@
         <h3>Journey Progress</h3>
         <p>Your Progress: <span id="userMiles">0</span> miles</p>
         <p>Total Journey: <span id="totalMiles">1779</span> miles</p>
+        <div id="debug">Debugging info will appear here</div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.3/leaflet.js"></script>
@@ -36,6 +37,9 @@
         // Custom tile layer to handle bounds per zoom level
         L.TileLayer.BoundedTiles = L.TileLayer.extend({
             getTileUrl: function(coords) {
+                // Log tile requests
+                console.log(`Requesting tile at zoom ${coords.z}, x: ${coords.x}, y: ${coords.y}`);
+                
                 // Define valid ranges for each zoom level
                 const validRanges = {
                     0: { xMin: 0, xMax: 1, yMin: 0, yMax: 1 },
@@ -50,11 +54,12 @@
                 if (range && 
                     coords.x >= range.xMin && coords.x <= range.xMax &&
                     coords.y >= range.yMin && coords.y <= range.yMax) {
-                    // Using the full GitHub Pages URL path
-                    return `https://zjrobinson90.github.io/walking-middle-earth/tiles/${coords.z}/${coords.x}/${coords.y}.jpg`;
+                    const url = `https://zjrobinson90.github.io/walking-middle-earth/tiles/${coords.z}/${coords.x}/${coords.y}.jpg`;
+                    console.log('Loading tile:', url);
+                    return url;
                 }
                 
-                // Return empty tile if out of range
+                console.log('Tile out of range:', coords);
                 return 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
             }
         });
@@ -68,52 +73,59 @@
             attributionControl: false
         });
 
+        // Calculate the size of the map at max zoom
+        const tileSize = 256;
+        const maxZoomTiles = { x: 12, y: 11 }; // Number of tiles at max zoom (0-11 x, 0-10 y)
+        const maxPixels = {
+            x: maxZoomTiles.x * tileSize,
+            y: maxZoomTiles.y * tileSize
+        };
+
+        // Create transformation that maps pixel coordinates to lat/lng
+        const transformation = new L.Transformation(1, 0, 1, 0);
+        map.options.crs = L.extend({}, L.CRS.Simple, {
+            transformation: transformation
+        });
+
         // Add the custom tile layer
-        new L.TileLayer.BoundedTiles('', {
+        const tileLayer = new L.TileLayer.BoundedTiles('', {
             minZoom: 0,
             maxZoom: 3,
             noWrap: true,
-            tileSize: 256
+            tileSize: 256,
+            bounds: [[0, 0], [maxPixels.y, maxPixels.x]]
         }).addTo(map);
 
-        // Calculate bounds based on max zoom level (zoom 3)
-        const maxTileX = 11;
-        const maxTileY = 10;
-        const tileSize = 256;
-        
-        // Calculate the bounds in pixels at max zoom
-        const maxBounds = [
-            [0, 0],
-            [maxTileY * tileSize, maxTileX * tileSize]
-        ];
-
-        // Add some console logging to help debug
-        console.log('Map initialized');
-        console.log('Max bounds:', maxBounds);
-        
-        // Set the view to center of the map at zoom level 1
-        const center = [
-            (maxBounds[1][0] - maxBounds[0][0]) / 2,
-            (maxBounds[1][1] - maxBounds[0][1]) / 2
-        ];
-        
-        console.log('Center point:', center);
+        // Set initial view to center of the map
+        const center = [maxPixels.y / 2, maxPixels.x / 2];
+        console.log('Setting initial center to:', center);
         map.setView(center, 1);
+
+        // Set max bounds
+        const maxBounds = [[0, 0], [maxPixels.y, maxPixels.x]];
         map.setMaxBounds(maxBounds);
 
-        // Add event listeners for debugging
+        // Debug event listeners
         map.on('zoomend', function() {
-            console.log('Current zoom level:', map.getZoom());
+            const zoom = map.getZoom();
+            const center = map.getCenter();
+            const bounds = map.getBounds();
+            document.getElementById('debug').innerHTML = `
+                Zoom: ${zoom}<br>
+                Center: [${center.lat.toFixed(0)}, ${center.lng.toFixed(0)}]<br>
+                Bounds: ${JSON.stringify(bounds)}
+            `;
+            console.log('Zoom changed to:', zoom);
+            console.log('Center is now:', center);
+            console.log('Bounds are:', bounds);
         });
 
-        map.on('moveend', function() {
-            console.log('Current center:', map.getCenter());
-        });
-
-        // Prevent zooming too far or panning outside bounds
-        map.on('drag', function() {
-            map.panInsideBounds(maxBounds, { animate: false });
-        });
+        // Force initial tile load
+        setTimeout(() => {
+            console.log('Forcing map update');
+            map.invalidateSize();
+            map.setView(center, 1, { animate: false });
+        }, 100);
     </script>
 </body>
 </html>
