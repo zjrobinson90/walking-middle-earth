@@ -21,19 +21,6 @@
             border-radius: 4px;
             box-shadow: 0 0 10px rgba(0,0,0,0.2);
         }
-        .progress-bar {
-            width: 200px;
-            height: 20px;
-            background: #eee;
-            border-radius: 10px;
-            overflow: hidden;
-        }
-        .progress-fill {
-            height: 100%;
-            background: #4CAF50;
-            width: 0%;
-            transition: width 0.5s ease-in-out;
-        }
     </style>
 </head>
 <body>
@@ -41,15 +28,36 @@
     <div class="info-panel">
         <h3>Journey Progress</h3>
         <p>Your Progress: <span id="userMiles">0</span> miles</p>
-        <div class="progress-bar">
-            <div class="progress-fill" id="progressBar"></div>
-        </div>
         <p>Total Journey: <span id="totalMiles">1779</span> miles</p>
-        <button onclick="addMiles(10)">Add 10 miles (debug)</button>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.3/leaflet.js"></script>
     <script>
+        // Custom tile layer to handle bounds per zoom level
+        L.TileLayer.BoundedTiles = L.TileLayer.extend({
+            getTileUrl: function(coords) {
+                // Define valid ranges for each zoom level
+                const validRanges = {
+                    0: { xMin: 0, xMax: 1, yMin: 0, yMax: 1 },
+                    1: { xMin: 0, xMax: 2, yMin: 0, yMax: 2 },
+                    2: { xMin: 0, xMax: 5, yMin: 0, yMax: 5 },
+                    3: { xMin: 0, xMax: 11, yMin: 0, yMax: 10 }
+                };
+
+                const range = validRanges[coords.z];
+                
+                // Check if the requested tile is within valid range
+                if (range && 
+                    coords.x >= range.xMin && coords.x <= range.xMax &&
+                    coords.y >= range.yMin && coords.y <= range.yMax) {
+                    return `/walking-middle-earth/tiles/${coords.z}/${coords.x}/${coords.y}.jpg`;
+                }
+                
+                // Return empty tile if out of range
+                return 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
+            }
+        });
+
         // Initialize the map
         const map = L.map('map', {
             crs: L.CRS.Simple,
@@ -59,81 +67,38 @@
             attributionControl: false
         });
 
-        // Add tile layer
-        L.tileLayer('/walking-middle-earth/tiles/{z}/{x}/{y}.jpg', {
+        // Add the custom tile layer
+        new L.TileLayer.BoundedTiles('', {
             minZoom: 0,
             maxZoom: 3,
             noWrap: true,
-            tileSize: 256,
-            bounds: [[0, 0], [8192, 8192]]  // Assuming max zoom tiles are 256x256 and you have 11x11 tiles at max zoom
+            tileSize: 256
         }).addTo(map);
 
-        // Calculate the center point
-        const centerPoint = [4096, 4096];  // Half of the bounds
+        // Calculate bounds based on max zoom level (zoom 3)
+        const maxTileX = 11;
+        const maxTileY = 10;
+        const tileSize = 256;
         
-        // Set view to the center at zoom level 1
-        map.setView(centerPoint, 1);
-
-        // Set max bounds with some padding
-        const maxBounds = [[0, 0], [8192, 8192]];
-        map.setMaxBounds(maxBounds);
-
-        // Journey tracking variables
-        let currentMiles = 0;
-        const totalMiles = 1779; // Total miles from Hobbiton to Mount Doom
-
-        // Frodo's journey coordinates (you'll need to adjust these based on your map)
-        const journeyCoordinates = [
-            [3000, 2000], // Hobbiton (example coordinates)
-            [3200, 2500], // Bree
-            [3500, 3000], // Rivendell
-            [4000, 3500], // Moria
-            [4500, 4000], // Lothlórien
-            [5000, 4500], // Amon Hen
-            [5500, 5000], // Mordor
-            [6000, 5500]  // Mount Doom
+        // Calculate the bounds in pixels at max zoom
+        const maxBounds = [
+            [0, 0],
+            [maxTileY * tileSize, maxTileX * tileSize]
         ];
 
-        // Create the path layer
-        const pathLayer = L.polyline([], {
-            color: 'red',
-            weight: 3,
-            opacity: 0.7
-        }).addTo(map);
+        // Set the view to center of the map at zoom level 1
+        const center = [
+            (maxBounds[1][0] - maxBounds[0][0]) / 2,
+            (maxBounds[1][1] - maxBounds[0][1]) / 2
+        ];
+        
+        map.setView(center, 1);
+        map.setMaxBounds(maxBounds);
 
-        // Function to update progress
-        function addMiles(miles) {
-            currentMiles = Math.min(currentMiles + miles, totalMiles);
-            updateProgress();
-        }
-
-        // Function to update the visual progress
-        function updateProgress() {
-            // Update display
-            document.getElementById('userMiles').textContent = currentMiles;
-            
-            // Update progress bar
-            const percentage = (currentMiles / totalMiles) * 100;
-            document.getElementById('progressBar').style.width = percentage + '%';
-
-            // Calculate how much of the path to show
-            const progress = currentMiles / totalMiles;
-            const pointsToShow = Math.ceil(progress * journeyCoordinates.length);
-            
-            // Update the path on the map
-            pathLayer.setLatLngs(journeyCoordinates.slice(0, pointsToShow));
-        }
-
-        // Initialize markers for key locations
-        journeyCoordinates.forEach((coord, index) => {
-            if (index === 0 || index === journeyCoordinates.length - 1) {
-                L.marker(coord).addTo(map)
-                    .bindPopup(index === 0 ? 'Hobbiton' : 'Mount Doom');
-            }
+        // Prevent zooming too far or panning outside bounds
+        map.on('drag', function() {
+            map.panInsideBounds(maxBounds, { animate: false });
         });
-
-        // Initial update
-        updateProgress();
     </script>
 </body>
 </html>
