@@ -50,7 +50,8 @@
                 if (range && 
                     coords.x >= range.xMin && coords.x <= range.xMax &&
                     coords.y >= range.yMin && coords.y <= range.yMax) {
-                    return `/walking-middle-earth/tiles/${coords.z}/${coords.x}/${coords.y}.jpg`;
+                    // Using the full GitHub Pages URL path
+                    return `https://zjrobinson90.github.io/walking-middle-earth/tiles/${coords.z}/${coords.x}/${coords.y}.jpg`;
                 }
                 
                 // Return empty tile if out of range
@@ -86,14 +87,28 @@
             [maxTileY * tileSize, maxTileX * tileSize]
         ];
 
+        // Add some console logging to help debug
+        console.log('Map initialized');
+        console.log('Max bounds:', maxBounds);
+        
         // Set the view to center of the map at zoom level 1
         const center = [
             (maxBounds[1][0] - maxBounds[0][0]) / 2,
             (maxBounds[1][1] - maxBounds[0][1]) / 2
         ];
         
+        console.log('Center point:', center);
         map.setView(center, 1);
         map.setMaxBounds(maxBounds);
+
+        // Add event listeners for debugging
+        map.on('zoomend', function() {
+            console.log('Current zoom level:', map.getZoom());
+        });
+
+        map.on('moveend', function() {
+            console.log('Current center:', map.getCenter());
+        });
 
         // Prevent zooming too far or panning outside bounds
         map.on('drag', function() {
