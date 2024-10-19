@@ -9,116 +9,89 @@
         body { 
             margin: 0; 
             padding: 0; 
-            font-family: monospace;
         }
         #map {
             width: 100%;
-            height: 80vh;
+            height: 100vh;
         }
-        #debug {
-            height: 20vh;
-            overflow-y: auto;
-            padding: 10px;
-            background: #f5f5f5;
-            font-size: 12px;
-        }
-        .success { color: green; }
-        .error { color: red; }
     </style>
 </head>
 <body>
     <div id="map"></div>
-    <div id="debug"></div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.3/leaflet.js"></script>
     <script>
-        // Debug logging function
-        function log(message, type = 'info') {
-            const debug = document.getElementById('debug');
-            const entry = document.createElement('div');
-            entry.className = type;
-            entry.textContent = `${new Date().toLocaleTimeString()} - ${message}`;
-            debug.insertBefore(entry, debug.firstChild);
-            console.log(message);
-        }
+        // Valid tile ranges for each zoom level
+        const validTileRanges = {
+            0: { x: [0, 1], y: [0, 1] },         // 2x2 tiles
+            1: { x: [0, 2], y: [0, 2] },         // 3x3 tiles
+            2: { x: [0, 5], y: [0, 5] },         // 6x6 tiles
+            3: { x: [0, 11], y: [0, 10] }        // 12x11 tiles
+        };
 
-        // Test specific tile URLs
-        async function testTile(z, x, y) {
-            const url = `https://zjrobinson90.github.io/walking-middle-earth/tiles/${z}/${x}/${y}.jpg`;
-            try {
-                const response = await fetch(url);
-                if (response.ok) {
-                    log(`✓ Tile exists: ${url}`, 'success');
-                } else {
-                    log(`✗ Tile failed (${response.status}): ${url}`, 'error');
+        // Calculate pixel dimensions for each zoom level
+        const tileSize = 256;
+        const mapDimensions = {
+            0: { width: 2 * tileSize, height: 2 * tileSize },
+            1: { width: 3 * tileSize, height: 3 * tileSize },
+            2: { width: 6 * tileSize, height: 6 * tileSize },
+            3: { width: 12 * tileSize, height: 11 * tileSize }
+        };
+
+        // Custom tile layer
+        L.TileLayer.BoundedTiles = L.TileLayer.extend({
+            getTileUrl: function(coords) {
+                const range = validTileRanges[coords.z];
+                
+                // Only return URL for valid tiles
+                if (range && 
+                    coords.x >= range.x[0] && coords.x <= range.x[1] &&
+                    coords.y >= range.y[0] && coords.y <= range.y[1]) {
+                    return `https://zjrobinson90.github.io/walking-middle-earth/tiles/${coords.z}/${coords.x}/${coords.y}.jpg`;
                 }
-            } catch (error) {
-                log(`✗ Error loading tile: ${url} - ${error}`, 'error');
+                
+                // Return transparent pixel for invalid tiles
+                return 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
             }
-        }
-
-        // Test some known valid tiles
-        const testTiles = [
-            [0, 0, 0],
-            [0, 0, 1],
-            [0, 1, 0],
-            [0, 1, 1],
-            [1, 0, 0]
-        ];
-
-        log('Starting tile tests...');
-        testTiles.forEach(([z, x, y]) => testTile(z, x, y));
+        });
 
         // Initialize map
         const map = L.map('map', {
             crs: L.CRS.Simple,
             minZoom: 0,
-            maxZoom: 3
-        });
-
-        L.TileLayer.BoundedTiles = L.TileLayer.extend({
-            getTileUrl: function(coords) {
-                const url = `https://zjrobinson90.github.io/walking-middle-earth/tiles/${coords.z}/${coords.x}/${coords.y}.jpg`;
-                log(`Requesting tile: ${url}`);
-                return url;
-            },
-            createTile: function(coords, done) {
-                const tile = document.createElement('img');
-                tile.src = this.getTileUrl(coords);
-                tile.alt = '';
-                
-                tile.onload = () => {
-                    log(`✓ Loaded tile: z=${coords.z}, x=${coords.x}, y=${coords.y}`, 'success');
-                    done(null, tile);
-                };
-                
-                tile.onerror = () => {
-                    log(`✗ Failed to load tile: z=${coords.z}, x=${coords.x}, y=${coords.y}`, 'error');
-                    done(null, tile);
-                };
-                
-                return tile;
-            }
+            maxZoom: 3,
+            zoomControl: true,
+            attributionControl: false
         });
 
         // Add tile layer
-        new L.TileLayer.BoundedTiles('', {
+        const tileLayer = new L.TileLayer.BoundedTiles('', {
             minZoom: 0,
             maxZoom: 3,
             tileSize: 256,
-            noWrap: true
+            noWrap: true,
+            bounds: [[0, 0], [mapDimensions[3].height, mapDimensions[3].width]]
         }).addTo(map);
 
-        // Set initial view
-        const tileSize = 256;
-        map.setView([tileSize, tileSize], 0);
+        // Set view to center of zoom level 0 (2x2 tiles)
+        const initialZoom = 0;
+        const center = [
+            mapDimensions[initialZoom].height / 2,
+            mapDimensions[initialZoom].width / 2
+        ];
+        
+        // Set map view and bounds
+        map.setView(center, initialZoom);
+        map.setMaxBounds([
+            [0, 0],
+            [mapDimensions[3].height, mapDimensions[3].width]
+        ]);
 
-        // Add map event logging
-        map.on('zoomend', () => {
-            const zoom = map.getZoom();
-            const center = map.getCenter();
-            log(`Map zoom: ${zoom}, center: [${center.lat.toFixed(0)}, ${center.lng.toFixed(0)}]`);
-        });
+        // Force update
+        setTimeout(() => {
+            map.invalidateSize();
+            map.setView(center, initialZoom, { animate: false });
+        }, 100);
     </script>
 </body>
 </html>
