@@ -9,16 +9,18 @@
         body { 
             margin: 0; 
             padding: 0; 
+            height: 100vh;
         }
         #map {
             width: 100%;
-            height: 100vh;
+            height: 100%;
+            position: absolute;
+            background: #f0f0f0;  /* Light gray background to verify the map container */
         }
     </style>
 </head>
 <body>
     <div id="map"></div>
-
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.3/leaflet.js"></script>
     <script>
         // Valid tile ranges for each zoom level
@@ -38,24 +40,33 @@
             3: { width: 12 * tileSize, height: 11 * tileSize }
         };
 
-        // Custom tile layer
+        // Custom tile layer with debugging
         L.TileLayer.BoundedTiles = L.TileLayer.extend({
             getTileUrl: function(coords) {
                 const range = validTileRanges[coords.z];
                 
-                // Only return URL for valid tiles
                 if (range && 
                     coords.x >= range.x[0] && coords.x <= range.x[1] &&
                     coords.y >= range.y[0] && coords.y <= range.y[1]) {
-                    return `https://zjrobinson90.github.io/walking-middle-earth/tiles/${coords.z}/${coords.x}/${coords.y}.jpg`;
+                    const url = `https://zjrobinson90.github.io/walking-middle-earth/tiles/${coords.z}/${coords.x}/${coords.y}.jpg`;
+                    console.log('Loading tile:', url);
+                    return url;
                 }
                 
-                // Return transparent pixel for invalid tiles
+                console.log('Invalid tile coordinates:', coords);
                 return 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
+            },
+            createTile: function(coords, done) {
+                const tile = L.TileLayer.prototype.createTile.call(this, coords, done);
+                tile.onerror = () => {
+                    console.error('Failed to load tile:', coords);
+                    done(null, tile);
+                };
+                return tile;
             }
         });
 
-        // Initialize map
+        // Initialize map with debugging
         const map = L.map('map', {
             crs: L.CRS.Simple,
             minZoom: 0,
@@ -63,34 +74,46 @@
             zoomControl: true,
             attributionControl: false
         });
+        console.log('Map initialized');
 
-        // Add tile layer
+        // Convert pixel coordinates to map coordinates
+        const pixelsToLatLng = (x, y) => map.unproject([x, y], map.getMaxZoom());
+        
+        // Calculate bounds in pixel coordinates for max zoom
+        const maxZoom = 3;
+        const southWest = pixelsToLatLng(0, mapDimensions[maxZoom].height);
+        const northEast = pixelsToLatLng(mapDimensions[maxZoom].width, 0);
+        const bounds = L.latLngBounds(southWest, northEast);
+
+        // Create and add tile layer
         const tileLayer = new L.TileLayer.BoundedTiles('', {
             minZoom: 0,
             maxZoom: 3,
             tileSize: 256,
             noWrap: true,
-            bounds: [[0, 0], [mapDimensions[3].height, mapDimensions[3].width]]
+            bounds: bounds
         }).addTo(map);
+        console.log('Tile layer added');
 
-        // Set view to center of zoom level 0 (2x2 tiles)
-        const initialZoom = 0;
-        const center = [
-            mapDimensions[initialZoom].height / 2,
-            mapDimensions[initialZoom].width / 2
-        ];
+        // Set initial view to center of bounds
+        const center = bounds.getCenter();
+        map.setView(center, 0);
+        map.setMaxBounds(bounds);
+
+        // Debug output
+        console.log('Bounds:', bounds);
+        console.log('Center:', center);
+        console.log('Initial zoom:', map.getZoom());
         
-        // Set map view and bounds
-        map.setView(center, initialZoom);
-        map.setMaxBounds([
-            [0, 0],
-            [mapDimensions[3].height, mapDimensions[3].width]
-        ]);
+        // Add a marker at the center for debugging
+        L.marker(center).addTo(map);
+        console.log('Debug marker added at center');
 
         // Force update
         setTimeout(() => {
             map.invalidateSize();
-            map.setView(center, initialZoom, { animate: false });
+            map.setView(center, 0, { animate: false });
+            console.log('Map size invalidated and view reset');
         }, 100);
     </script>
 </body>
