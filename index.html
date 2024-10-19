@@ -26,50 +26,50 @@
             box-shadow: 0 0 15px rgba(0,0,0,0.2);
             min-width: 200px;
         }
-        .info-panel h3 {
-            margin: 0 0 10px 0;
-            color: #333;
-        }
-        .progress-bar {
-            width: 100%;
-            height: 20px;
-            background: #eee;
-            border-radius: 10px;
-            overflow: hidden;
-            margin: 10px 0;
-        }
-        .progress-fill {
-            height: 100%;
-            background: #4CAF50;
-            width: 0%;
-            transition: width 0.5s ease-in-out;
-        }
-        .location-marker {
-            background: none;
-            border: none;
-        }
-        .location-marker i {
-            background-color: #fff;
-            border: 2px solid #666;
-            border-radius: 50%;
-            width: 10px;
-            height: 10px;
-        }
     </style>
 </head>
 <body>
     <div id="map"></div>
     <div class="info-panel">
-        <h3>Journey Through Middle-earth</h3>
-        <div class="progress-bar">
-            <div class="progress-fill" id="progressBar"></div>
-        </div>
-        <p>Your Progress: <span id="userMiles">0</span> miles</p>
-        <p>Total Journey: <span id="totalMiles">1779</span> miles</p>
+        <h3>Map Information</h3>
+        <div id="debug"></div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.3/leaflet.js"></script>
     <script>
+        // Define the valid tile ranges for each zoom level
+        const validTileRanges = {
+            0: { x: [0, 1], y: [0, 1] },         // 2x2 tiles
+            1: { x: [0, 2], y: [0, 2] },         // 3x3 tiles
+            2: { x: [0, 5], y: [0, 5] },         // 6x6 tiles
+            3: { x: [0, 11], y: [0, 10] }        // 12x11 tiles
+        };
+
+        // Custom tile layer with proper bounds checking
+        L.TileLayer.BoundedTiles = L.TileLayer.extend({
+            getTileUrl: function(coords) {
+                const range = validTileRanges[coords.z];
+                
+                // Check if tile is within valid range
+                if (range && 
+                    coords.x >= range.x[0] && coords.x <= range.x[1] &&
+                    coords.y >= range.y[0] && coords.y <= range.y[1]) {
+                    return `https://zjrobinson90.github.io/walking-middle-earth/tiles/${coords.z}/${coords.x}/${coords.y}.jpg`;
+                }
+                
+                // Return transparent pixel for invalid tiles
+                return 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
+            }
+        });
+
+        // Calculate map dimensions based on maximum zoom level
+        const tileSize = 256;
+        const maxZoomTiles = validTileRanges[3]; // Use zoom level 3's dimensions
+        const mapPixels = {
+            x: (maxZoomTiles.x[1] + 1) * tileSize,
+            y: (maxZoomTiles.y[1] + 1) * tileSize
+        };
+
         // Initialize the map
         const map = L.map('map', {
             crs: L.CRS.Simple,
@@ -79,38 +79,8 @@
             attributionControl: false
         });
 
-        // Improved tile layer with better error handling
-        L.TileLayer.BoundedTiles = L.TileLayer.extend({
-            getTileUrl: function(coords) {
-                const validRanges = {
-                    0: { xMin: 0, xMax: 1, yMin: 0, yMax: 1 },
-                    1: { xMin: 0, xMax: 2, yMin: 0, yMax: 2 },
-                    2: { xMin: 0, xMax: 5, yMin: 0, yMax: 5 },
-                    3: { xMin: 0, xMax: 11, yMin: 0, yMax: 10 }
-                };
-
-                const range = validRanges[coords.z];
-                
-                if (range && 
-                    coords.x >= range.xMin && coords.x <= range.xMax &&
-                    coords.y >= range.yMin && coords.y <= range.yMax) {
-                    return `https://zjrobinson90.github.io/walking-middle-earth/tiles/${coords.z}/${coords.x}/${coords.y}.jpg`;
-                }
-                
-                return 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
-            }
-        });
-
-        // Map constants
-        const tileSize = 256;
-        const maxTiles = { x: 12, y: 11 };
-        const mapPixels = {
-            x: maxTiles.x * tileSize,
-            y: maxTiles.y * tileSize
-        };
-
-        // Add tile layer
-        new L.TileLayer.BoundedTiles('', {
+        // Add the tile layer
+        const tileLayer = new L.TileLayer.BoundedTiles('', {
             minZoom: 0,
             maxZoom: 3,
             noWrap: true,
@@ -118,75 +88,28 @@
             bounds: [[0, 0], [mapPixels.y, mapPixels.x]]
         }).addTo(map);
 
-        // Journey waypoints (example coordinates - adjust these to match actual locations)
-        const journeyPoints = [
-            { name: "Bag End", coords: [1800, 1200] },
-            { name: "Bree", coords: [1700, 1400] },
-            { name: "Rivendell", coords: [1600, 1800] },
-            { name: "Moria", coords: [1500, 2200] },
-            { name: "Lothlorien", coords: [1400, 2400] },
-            { name: "Amon Hen", coords: [1300, 2600] },
-            { name: "Emyn Muil", coords: [1200, 2800] },
-            { name: "Dead Marshes", coords: [1100, 3000] },
-            { name: "Black Gate", coords: [1000, 3200] },
-            { name: "Cirith Ungol", coords: [900, 3400] },
-            { name: "Mount Doom", coords: [800, 3600] }
-        ];
-
-        // Create the journey path
-        const pathCoordinates = journeyPoints.map(point => point.coords);
-        const completePath = L.polyline(pathCoordinates, {
-            color: '#777',
-            weight: 3,
-            opacity: 0.5,
-            dashArray: '5, 10'
-        }).addTo(map);
-
-        // Create the progress path (initially empty)
-        const progressPath = L.polyline([], {
-            color: '#4CAF50',
-            weight: 4
-        }).addTo(map);
-
-        // Add markers for locations
-        journeyPoints.forEach(point => {
-            L.circleMarker(point.coords, {
-                radius: 5,
-                fillColor: "#fff",
-                color: "#000",
-                weight: 2,
-                opacity: 1,
-                fillOpacity: 0.8
-            }).bindPopup(point.name).addTo(map);
-        });
-
-        // Set initial view
-        map.setView([mapPixels.y / 2, mapPixels.x / 2], 1);
+        // Set initial view and bounds
+        const center = [mapPixels.y / 2, mapPixels.x / 2];
+        map.setView(center, 1);
         map.setMaxBounds([[0, 0], [mapPixels.y, mapPixels.x]]);
 
-        // Function to update progress
-        function updateProgress(miles) {
-            const totalMiles = 1779; // Total journey distance
-            const progress = Math.min(miles / totalMiles, 1);
-            
-            // Update progress bar
-            document.getElementById('progressBar').style.width = `${progress * 100}%`;
-            document.getElementById('userMiles').textContent = miles.toFixed(1);
-            
-            // Update path
-            const numPoints = Math.floor(progress * pathCoordinates.length);
-            const currentProgress = pathCoordinates.slice(0, numPoints + 1);
-            progressPath.setLatLngs(currentProgress);
-        }
+        // Debug information
+        map.on('zoomend moveend', function() {
+            const zoom = map.getZoom();
+            const center = map.getCenter();
+            const bounds = map.getBounds();
+            document.getElementById('debug').innerHTML = `
+                Zoom: ${zoom}<br>
+                Center: [${center.lat.toFixed(0)}, ${center.lng.toFixed(0)}]<br>
+                Current tile range: ${JSON.stringify(validTileRanges[zoom])}
+            `;
+        });
 
-        // Example: Update progress (you would call this with actual miles walked)
-        let currentMiles = 0;
-        setInterval(() => {
-            // This is just for demonstration - replace with your actual progress tracking
-            currentMiles = (currentMiles + 10) % 1780;
-            updateProgress(currentMiles);
-        }, 1000);
-
+        // Force initial update
+        setTimeout(() => {
+            map.invalidateSize();
+            map.setView(center, 1, { animate: false });
+        }, 100);
     </script>
 </body>
 </html>
